@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "object-oriented-notes",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Object Oriented Notes for Obsidian",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
@@ -24,6 +24,6 @@
 		"jiti": "2.6.1"
 	},
 	"dependencies": {
-		"obsidian": "latest"
+		"obsidian": "1.11.*"
 	}
 }
