@@ -1,7 +1,7 @@
 {
 	"name": "data-oriented-notes",
 	"version": "1.0.0",
-	"description": "Object Oriented Notes for Obsidian",
+	"description": "Data Oriented Notes for Obsidian",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

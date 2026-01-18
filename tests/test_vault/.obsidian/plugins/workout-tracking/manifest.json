@@ -1,0 +1,11 @@
+{
+	"id": "workout-tracker-josiah",
+	"name": "Workout Tracker",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Track your workouts and progress.",
+	"author": "Josiah Laivins",
+	"authorUrl": "https://github.com/josiahls",
+	"fundingUrl": "https://github.com/sponsors/josiahls",
+	"isDesktopOnly": false
+}

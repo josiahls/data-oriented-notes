@@ -1,4 +1,4 @@
-# Object Oriented Notes for Obsidian
+# Data Oriented Notes for Obsidian
 
 
 ## Development Installation
