@@ -1,7 +1,7 @@
 # version: "3.8"
 
-x-object-oriented-notes-base: &object-oriented-notes-base
-  working_dir: /home/node/object-oriented-notes
+x-data-oriented-notes-base: &data-oriented-notes-base
+  working_dir: /home/node/data-oriented-notes
   logging:
     driver: json-file
     options:
@@ -10,27 +10,27 @@ x-object-oriented-notes-base: &object-oriented-notes-base
   tty: true
   shm_size: 16000000000
   volumes:
-    - .:/home/node/object-oriented-notes/
+    - .:/home/node/data-oriented-notes/
     - ~/.ssh:/home/node/.ssh:rw
   network_mode: host
 
 services:
-  object-oriented-notes_cpu_build:
+  data-oriented-notes_cpu_build:
     build:
-      dockerfile: object-oriented-notes.Dockerfile
+      dockerfile: data-oriented-notes.Dockerfile
       context: .
       target: build_cpu
-    # image: josiahls/object-oriented-notes-cpu:${VERSION:-latest}
-    image: object-oriented-notes-cpu:${VERSION:-latest}
+    # image: josiahls/data-oriented-notes-cpu:${VERSION:-latest}
+    image: data-oriented-notes-cpu:${VERSION:-latest}
     profiles: ["build-cpu"]
 
-  object-oriented-notes_cpu: &object-oriented-notes_cpu
-    <<: *object-oriented-notes-base
+  data-oriented-notes_cpu: &data-oriented-notes_cpu
+    <<: *data-oriented-notes-base
     build:
-      dockerfile: object-oriented-notes.Dockerfile
+      dockerfile: data-oriented-notes.Dockerfile
       context: .
       target: build_cpu
     profiles: ["cpu"]
     restart: unless-stopped
-    # image: josiahls/object-oriented-notes-cpu:${VERSION:-latest}
-    image: object-oriented-notes-cpu:${VERSION:-latest}
+    # image: josiahls/data-oriented-notes-cpu:${VERSION:-latest}
+    image: data-oriented-notes-cpu:${VERSION:-latest}

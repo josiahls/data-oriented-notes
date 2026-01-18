@@ -14,7 +14,7 @@ const prod = (process.argv[2] === "production");
 
 // Copy manifest and styles to output directory
 function copyFiles() {
-	const outDir = "tests/test_vault/.obsidian/plugins/object-oriented-notes";
+	const outDir = "tests/test_vault/.obsidian/plugins/data-oriented-notes";
 	// Ensure the directory exists
 	mkdirSync(outDir, { recursive: true });
 	copyFileSync("manifest.json", `${outDir}/manifest.json`);
@@ -48,7 +48,7 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "tests/test_vault/.obsidian/plugins/object-oriented-notes/main.js",
+	outfile: "tests/test_vault/.obsidian/plugins/data-oriented-notes/main.js",
 	minify: prod,
 });
 
