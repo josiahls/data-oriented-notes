@@ -1,18 +1,19 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import {App, PluginSettingTab, SearchComponent, Setting} from "obsidian";
+import DataOrientedNotes from "./main";
+import { getPath, pathExists } from "./utiils";
 
-export interface MyPluginSettings {
-	mySetting: string;
+export interface DataOrientedNotesSettings {
+	templateSourcePath: string;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+export const DEFAULT_SETTINGS: DataOrientedNotesSettings = {
+	templateSourcePath: ''
 }
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+export class DataOrientedNotesSettingTab extends PluginSettingTab {
+	plugin: DataOrientedNotes;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: DataOrientedNotes) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -23,13 +24,13 @@ export class SampleSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+			.setName('Template Source Path')
+			.setDesc('The path to the template source file')
+			.addSearch(search => search
+				.setPlaceholder('Enter the path to the template source file')
+				.setValue(this.plugin.settings.templateSourcePath)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.templateSourcePath = value;
 					await this.plugin.saveSettings();
 				}));
 	}
