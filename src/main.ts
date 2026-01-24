@@ -24,6 +24,17 @@ export default class MyPlugin extends Plugin {
 			});
 		}
 
+		for (const template of templates) {
+			console.log('Template insert from : ' + template.templatePath);
+			this.addCommand({
+				id: 'insert-data-oriented-note-' + template.templateName,
+				name: 'Insert from template: ' + template.templateName,
+				callback: () => {
+					createDataOrientedNote(this.app, template.templatePath, true);
+				}
+			});
+		}
+
 
 		this.addCommand({
 			id: 'iterate-data-oriented-note-templates',

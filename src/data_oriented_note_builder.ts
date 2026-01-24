@@ -1,4 +1,4 @@
-import { App, Notice, TFolder } from "obsidian";
+import { App, Notice, TFile, TFolder } from "obsidian";
 import { DataOrientedNote, copier } from "./data_oriented_note";
 import { getPath } from "./utils";
 import { FindOrCreateModal } from "./data_oriented_note_modal";
@@ -23,8 +23,16 @@ const basicCopier: copier = {
 async function createDataOrientedNote(
     app: App,
     templatePath: string,
+    insert: boolean = false
 ) {
     var copier: copier = basicCopier;
+    var file = null;
+    if (insert) {
+        file = await app.workspace.getActiveFile();
+        if (!file) {
+            throw new Error("No active file to insert into");
+        }
+    }
 
     let note = new DataOrientedNote(app, templatePath);
     await note.load(app);
@@ -57,6 +65,14 @@ async function createDataOrientedNote(
     console.log('New Note: : ' + newNote);
 
     await note.postProcessCleanUp(app);
+
+    if (insert && file != null) {
+        await app.vault.append(
+            file,
+            `![[${newNote}|${noteName}]]`
+        );
+        new Notice('Inserted ' + newNote + ' into ' + file.path);
+    }
 
     if (note.openAfterCreation) {
         await app.workspace.openLinkText(newNote,"",true);
