@@ -1,15 +1,32 @@
 import {App, PluginSettingTab, SearchComponent, Setting} from "obsidian";
 import DataOrientedNotes from "./main";
-import { getPath, pathExists } from "./utiils";
+import { getPath, pathExists } from "./utils";
 
+/**
+ * Interface for the plugin settings
+ * - templateSourcePath: Where to search and offer templates to the user
+ * - useTemplaterCopy: Whether to use the templater copy command to create the note
+ */
 export interface DataOrientedNotesSettings {
 	templateSourcePath: string;
+	useTemplaterCopy: boolean;
 }
 
+/**
+ * Current default settings are:
+ * - templateSourcePath: Where to search and offer templates to the user
+ * - useTemplaterCopy: Whether to use the templater copy command to create the note
+ */
 export const DEFAULT_SETTINGS: DataOrientedNotesSettings = {
-	templateSourcePath: ''
+	templateSourcePath: '',
+	useTemplaterCopy: true,
 }
 
+/**
+ * Setting tab.
+ * 
+ * Handles setting the `DataOrientedNotesSettings` object.
+ */
 export class DataOrientedNotesSettingTab extends PluginSettingTab {
 	plugin: DataOrientedNotes;
 
@@ -20,7 +37,6 @@ export class DataOrientedNotesSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const {containerEl} = this;
-
 		containerEl.empty();
 
 		new Setting(containerEl)
@@ -31,6 +47,18 @@ export class DataOrientedNotesSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.templateSourcePath)
 				.onChange(async (value) => {
 					this.plugin.settings.templateSourcePath = value;
+					await this.plugin.saveSettings();
+				}));
+		new Setting(containerEl)
+			.setName('Use Templater Copy')
+			.setDesc(
+				'Whether to use the templater copy command to create the note.'
+				+ ' This requires the Templater plugin to be installed.'
+			)
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.useTemplaterCopy)
+				.onChange(async (value) => {
+					this.plugin.settings.useTemplaterCopy = value;
 					await this.plugin.saveSettings();
 				}));
 	}
