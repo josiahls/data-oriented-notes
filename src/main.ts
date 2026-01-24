@@ -1,5 +1,6 @@
 import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, DataOrientedNotesSettings, DataOrientedNotesSettingTab} from "./settings";
+import { createDataOrientedNote } from "./data_oriented_note_builder";
 
 // Remember to rename these classes and interfaces!
 
@@ -11,10 +12,10 @@ export default class MyPlugin extends Plugin {
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
+			id: 'create-data-oriented-note',
+			name: 'Create data oriented note',
 			callback: () => {
-				new SampleModal(this.app).open();
+				createDataOrientedNote(this.app, '');
 			}
 		});
 
