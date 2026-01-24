@@ -1,6 +1,7 @@
 import {Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, DataOrientedNotesSettings, DataOrientedNotesSettingTab} from "./settings";
 import { createDataOrientedNote } from "./data_oriented_note_builder";
+import { iterateDataOrientedNoteTemplates, iterateTemplates } from 'data_orieinted_note_template_iterator';
 
 // Remember to rename these classes and interfaces!
 
@@ -11,11 +12,24 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This adds a simple command that can be triggered anywhere
+		var templates = await iterateTemplates(this.app, this.settings.templateSourcePath);
+		for (const template of templates) {
+			console.log('Template create from : ' + template.templatePath);
+			this.addCommand({
+				id: 'create-data-oriented-note-' + template.templateName,
+				name: 'Create from template: ' + template.templateName,
+				callback: () => {
+					createDataOrientedNote(this.app, template.templatePath);
+				}
+			});
+		}
+
+
 		this.addCommand({
-			id: 'create-data-oriented-note',
-			name: 'Create data oriented note',
+			id: 'iterate-data-oriented-note-templates',
+			name: 'Iterate data oriented note templates',
 			callback: () => {
-				createDataOrientedNote(this.app, '');
+				iterateDataOrientedNoteTemplates(this.app, this.settings.templateSourcePath);
 			}
 		});
 

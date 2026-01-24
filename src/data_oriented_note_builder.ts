@@ -25,24 +25,11 @@ async function createDataOrientedNote(
     templatePath: string,
 ) {
     var copier: copier = basicCopier;
-    // @ts-expect-error Property 'plugins' does not exist on type 'App'
-    const plugins = app.plugins.plugins;
-    const exists = plugins["templater-obsidian"];
-    if (!exists) {
-      new Notice("Templater is not installed. Please install it.");
-      return;
-    } else {
-      console.log("Templater is installed.");
-    }
 
-
-    let note_path = "Templates/Callouts/callout-note-definition.md";
-    let note = new DataOrientedNote(app, note_path);
+    let note = new DataOrientedNote(app, templatePath);
     await note.load(app);
 
     console.log(note);
-
-    // const noteName = 'test-note';
 
     const dataOrientedNotePath = await FindOrCreateModal.openAndGetValue(
         app, 
