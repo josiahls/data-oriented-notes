@@ -2,12 +2,21 @@ import { App, TFolder, Notice } from "obsidian";
 
 
 function pathExists(app: App, path: string) {
-    return app.vault.getAbstractFileByPath(path) !== null;
+    var _path = path
+    if (path.endsWith('/')) {
+        _path = path.substring(0, path.length - 1);
+    }
+    return app.vault.getAbstractFileByPath(_path) !== null;
 }
 
 
 function getPath(app: App, path: string) {
     return app.vault.getAbstractFileByPath(path);
+}
+
+
+function getFolderPath(app: App, path: string): TFolder | null{
+    return app.vault.getFolderByPath(path);
 }
 
 async function getOrCreateFolder(app: App, folderPath: string): Promise<TFolder> {
@@ -30,4 +39,4 @@ async function getOrCreateFolder(app: App, folderPath: string): Promise<TFolder>
 }
 
 
-export { getPath, pathExists, getOrCreateFolder };
+export { getPath, pathExists, getFolderPath, getOrCreateFolder };

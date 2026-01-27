@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS: DataOrientedNotesSettings = {
 	useTemplaterCopy: true,
 }
 
+function validPath()
+
 /**
  * Setting tab.
  * 
@@ -39,16 +41,23 @@ export class DataOrientedNotesSettingTab extends PluginSettingTab {
 		const {containerEl} = this;
 		containerEl.empty();
 
-		new Setting(containerEl)
+		var defaultDescription = 'The path to the template source file';
+		var templatePathSetting = new Setting(containerEl)
 			.setName('Template Source Path')
-			.setDesc('The path to the template source file')
-			.addSearch(search => search
-				.setPlaceholder('Enter the path to the template source file')
-				.setValue(this.plugin.settings.templateSourcePath)
-				.onChange(async (value) => {
+			.setDesc(defaultDescription);
+		templatePathSetting.addSearch(search => search
+			.setPlaceholder('Enter the path to the template source file')
+			.setValue(this.plugin.settings.templateSourcePath)
+			.onChange(async (value) => {
+				console.log('Template Source Path changed to: ' + value);
+				if (!pathExists(this.app, value)) {
+					templatePathSetting.setDesc('Path does not exist!');
+				} else {
+					templatePathSetting.setDesc(defaultDescription);
 					this.plugin.settings.templateSourcePath = value;
 					await this.plugin.saveSettings();
-				}));
+				}
+			}));
 		new Setting(containerEl)
 			.setName('Use Templater Copy')
 			.setDesc(

@@ -37,30 +37,58 @@ async function createDataOrientedNote(
     let note = new DataOrientedNote(app, templatePath);
     await note.load(app);
 
-    console.log(note);
-
-    const dataOrientedNotePath = await FindOrCreateModal.openAndGetValue(
+    var isInDataOrientedNote = await note.isInDataOrientedNote(
         app, 
-        note.outPath as TFolder,
-        note.attrName
+        await app.workspace.getActiveFile()
     );
-    console.log('Data Oriented Note Path: ',
-        dataOrientedNotePath.dataOrientedNotePathPretty,
-        dataOrientedNotePath.newDataOrientedNoteName,
-        dataOrientedNotePath.dataOrientedNotePath);
 
-    var noteName = dataOrientedNotePath.newDataOrientedNoteName;
+    console.log(note);
+    var noteName: string | undefined;
+    var targetPath: TFile | undefined | null = null;
+
+    if (!isInDataOrientedNote) {
+        const dataOrientedNotePath = await FindOrCreateModal.openAndGetValue(
+            app, 
+            note.outPath as TFolder,
+            note.attrName
+        );
+        console.log('Data Oriented Note Path: ',
+            dataOrientedNotePath.dataOrientedNotePathPretty,
+            dataOrientedNotePath.newDataOrientedNoteName,
+            dataOrientedNotePath.dataOrientedNotePath
+        );
+
+        noteName = dataOrientedNotePath.newDataOrientedNoteName;
+        targetPath = dataOrientedNotePath.dataOrientedNotePath;
+    } else {
+        const activeFile = await app.workspace.getActiveFile();
+        if (activeFile == null) {
+            throw new Error('No active file to get root note path from');
+        }
+        targetPath = await note.getRootNotePath(
+            app, activeFile
+        );
+    }
+
     if (noteName === undefined) {
-        if (dataOrientedNotePath.dataOrientedNotePath === undefined) {
+        if (targetPath === undefined || targetPath === null) {
             throw new Error('Data Oriented Note Path is not a file');
         }
-        noteName = dataOrientedNotePath.dataOrientedNotePath.basename;
+        noteName = targetPath.basename;
+    }
+    if (targetPath === undefined) {
+        targetPath = null;
     }
     if (noteName.trim() === '') {
         throw new Error('Note name is empty');
     }
 
-    const newNote = await note.create(app, noteName, copier);
+    const newNote = await note.create(
+        app, 
+        noteName, 
+        targetPath, 
+        copier
+    );
 
     console.log('New Note: : ' + newNote);
 
