@@ -1,4 +1,4 @@
-import { App, Notice, TFile, TFolder, Vault } from "obsidian";
+import { App, Notice, TFile, TFolder, Vault, FuzzySuggestModal } from "obsidian";
 import { getPath, getFolderPath } from "./utils";
 import { DataOrientedNote } from "./data_oriented_note";
 
@@ -6,6 +6,56 @@ import { DataOrientedNote } from "./data_oriented_note";
 export interface TemplateIteratorItem {
     templatePath: string;
     templateName: string;
+}
+
+class TemplateSuggestModal extends FuzzySuggestModal<TemplateIteratorItem> {
+    private resolve: (value: TemplateIteratorItem) => void;
+    public templateItem: TemplateIteratorItem;
+    public templates: TemplateIteratorItem[];
+    public cancelled: boolean;
+
+    constructor(
+        app: App,
+        resolve: (value: TemplateIteratorItem) => void,
+        templates: TemplateIteratorItem[]
+    ) {
+        super(app);
+        this.resolve = resolve;
+        this.cancelled = false;
+        this.templates = templates;
+        this.templateItem = {
+            templatePath: '',
+            templateName: '',
+        };
+    }
+
+    getItems(): TemplateIteratorItem[] {
+        return this.templates;
+    }
+
+    getItemText(item: TemplateIteratorItem): string {
+        return item.templateName;
+    }
+
+    onChooseItem(item: TemplateIteratorItem, evt: MouseEvent | KeyboardEvent) {
+        console.log('onChooseItem: item: ', item);
+
+        this.templateItem = item;
+        this.resolve(item);
+    }
+
+    static async openAndGetValue(
+        app: App,
+        templates: TemplateIteratorItem[]
+    ): Promise<TemplateIteratorItem> {
+        return new Promise((resolve) => {
+            new TemplateSuggestModal(
+                app,
+                resolve,
+                templates
+            ).open();
+        });
+    }
 }
 
 
@@ -21,8 +71,6 @@ async function isDataOrientedNoteTemplate(app: App, templatePath: TFile): Promis
     );
     return isDataOrientedNoteTemplate;
 }
-
-
 
 async function iterateTemplates(app: App, templatesPath: string): Promise<TemplateIteratorItem[]> {
     if (templatesPath.endsWith('/')) {
@@ -74,4 +122,5 @@ async function iterateDataOrientedNoteTemplates(app: App, templateSourcePath: st
     }
 }
 
-export { iterateTemplates, iterateDataOrientedNoteTemplates }
+
+export { iterateTemplates, iterateDataOrientedNoteTemplates, TemplateSuggestModal }

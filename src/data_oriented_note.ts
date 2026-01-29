@@ -1,4 +1,4 @@
-import { App, StringValue, TFile, Notice, TFolder, moment } from "obsidian";
+import { App, StringValue, TFile, Notice, TFolder, moment, normalizePath } from "obsidian";
 import { getPath, getOrCreateFolder, pathExists } from "./utils";
 
 
@@ -149,16 +149,40 @@ class DataOrientedNote {
             return false;
         }
         var isInDataOrientedNote = false;
+        
         await app.fileManager.processFrontMatter(
             noteFile,
             (frontMatter) => {
-                if (DataOrientedNote.rootNoteLink in frontMatter) {
+                if (
+                    DataOrientedNote.rootNoteLink in frontMatter
+                    && DataOrientedNote.useSelf in frontMatter
+                    && frontMatter[DataOrientedNote.useSelf] === true
+                ) {
                     isInDataOrientedNote = true;
                 }
             }
         );
         return isInDataOrientedNote;
     }
+
+    async isDefaultDataOrientedNote(app: App): Promise<boolean> {
+        var isDefaultDataOrientedNote = false;
+        await app.fileManager.processFrontMatter(
+            this.templatePath,
+            (frontMatter) => {
+                if (
+                    DataOrientedNote.rootNoteLink in frontMatter
+                    && DataOrientedNote.useSelf in frontMatter
+                    && frontMatter[DataOrientedNote.useSelf] === true
+                ) {
+                    console.log('isDefaultDataOrientedNote: ' + this.templatePath.path);
+                    isDefaultDataOrientedNote = true;
+                }
+            }
+        );
+        return isDefaultDataOrientedNote;
+    }
+
 
     async getRootNotePath(app: App, noteFile: TFile): Promise<TFile> {
         var rootNoteLink = '';
@@ -170,6 +194,17 @@ class DataOrientedNote {
                 }
             }
         );
+        if (rootNoteLink.trim() === '') {
+            await app.fileManager.processFrontMatter(
+                this.templatePath,
+                (frontMatter) => {
+                    if (DataOrientedNote.rootNoteLink in frontMatter) {
+                        rootNoteLink = frontMatter[DataOrientedNote.rootNoteLink];
+                    }
+                }
+            );
+        }
+            
         if (rootNoteLink.trim() === '') {
             throw new Error('Root note link is empty: ' + noteFile.path);
         }

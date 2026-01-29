@@ -42,11 +42,13 @@ async function createDataOrientedNote(
         await app.workspace.getActiveFile()
     );
 
+    var isDefaultDataOrientedNote = await note.isDefaultDataOrientedNote(app);
+
     console.log(note);
     var noteName: string | undefined;
     var targetPath: TFile | undefined | null = null;
 
-    if (!isInDataOrientedNote) {
+    if (!isInDataOrientedNote && !isDefaultDataOrientedNote) {
         const dataOrientedNotePath = await FindOrCreateModal.openAndGetValue(
             app, 
             note.outPath as TFolder,
