@@ -2,6 +2,7 @@ import {Plugin, Notice} from 'obsidian';
 import {DEFAULT_SETTINGS, DataOrientedNotesSettings, DataOrientedNotesSettingTab} from "./settings";
 import { createDataOrientedNote } from "./data_oriented_note_builder";
 import { iterateDataOrientedNoteTemplates, iterateTemplates, TemplateIteratorItem, TemplateSuggestModal } from 'data_orieinted_note_template_iterator';
+import { Path } from "./path";
 
 // Remember to rename these classes and interfaces!
 
@@ -9,22 +10,28 @@ export default class DataOrientedNotesPlugin extends Plugin {
 	settings: DataOrientedNotesSettings;
 
 	async onReady() {
+		var templateSourcePath = new Path(
+			this.settings.templateSourcePath, this.app
+		);
 		this.addCommand({
 			id: 'iterate-data-oriented-note-templates',
 			name: 'Iterate data oriented note templates',
 			callback: () => {
-				iterateDataOrientedNoteTemplates(this.app, this.settings.templateSourcePath);
+				iterateDataOrientedNoteTemplates(
+					this.app, 
+					templateSourcePath
+			    );
 			}
 		});
 
 		// This adds a simple command that can be triggered anywhere
 		var templates: TemplateIteratorItem[] = [];
-		if (this.settings.templateSourcePath.trim() !== '') {
-			templates = await iterateTemplates(this.app, this.settings.templateSourcePath);
-		} else if (this.settings.templateSourcePath.trim() === '') {
-			new Notice('Template source path is not set!');
+		if (templateSourcePath.isSet()) {
+			templates = await iterateTemplates(this.app, templateSourcePath);
+		} else if (!templateSourcePath.exists()) {
+			new Notice('Template source path does not exist: ' + templateSourcePath.getString());
 		} else {
-			new Notice('Template source path is not a valid path: ' + this.settings.templateSourcePath);
+			new Notice('Template source path is not set!');
 		}
 
 		this.addCommand({
@@ -32,8 +39,8 @@ export default class DataOrientedNotesPlugin extends Plugin {
 			name: 'Create data oriented note from templates',
 			callback: async () => {
 				var template = await TemplateSuggestModal.openAndGetValue(this.app, templates);
-				if (template.templatePath != '') {
-					createDataOrientedNote(this.app, template.templatePath);
+				if (template.path.isSet()) {
+					createDataOrientedNote(this.app, template.path);
 				} else {
 					new Notice('No template selected!');
 				}
@@ -45,8 +52,8 @@ export default class DataOrientedNotesPlugin extends Plugin {
 			name: 'Insert data oriented note from templates',
 			callback: async () => {
 				var template = await TemplateSuggestModal.openAndGetValue(this.app, templates);
-				if (template.templatePath != '') {
-					createDataOrientedNote(this.app, template.templatePath, true);
+				if (template.path.isSet()) {
+					createDataOrientedNote(this.app, template.path, true);
 				} else {
 					new Notice('No template selected!');
 				}
@@ -54,46 +61,46 @@ export default class DataOrientedNotesPlugin extends Plugin {
 		});
 
 		for (const template of templates) {
-			console.log('Template create from : ' + template.templatePath);
+			console.log('Template create from : ' + template.path.getString());
 			this.addCommand({
-				id: 'create-data-oriented-note-' + template.templateName,
-				name: 'Create from template: ' + template.templateName,
+				id: 'create-data-oriented-note-' + template.path.name(),
+				name: 'Create from template: ' + template.path.name(),
 				callback: () => {
-					createDataOrientedNote(this.app, template.templatePath);
+					createDataOrientedNote(this.app, template.path);
 				}
 			});
 		}
 
 		for (const template of templates) {
-			console.log('Template insert from : ' + template.templatePath);
+			console.log('Template insert from : ' + template.path.getString());
 			this.addCommand({
-				id: 'insert-data-oriented-note-' + template.templateName,
-				name: 'Insert from template: ' + template.templateName,
+				id: 'insert-data-oriented-note-' + template.path.name(),
+				name: 'Insert from template: ' + template.path.name(),
 				callback: () => {
-					createDataOrientedNote(this.app, template.templatePath, true);
+					createDataOrientedNote(this.app, template.path, true);
 				}
 			});
 		}
 
 
 		for (const template of templates) {
-			console.log('Template create from : ' + template.templatePath);
+			console.log('Template create from : ' + template.path.getString());
 			this.addCommand({
-				id: 'create-data-oriented-note-' + template.templateName,
-				name: 'Create from template: ' + template.templateName,
+				id: 'create-data-oriented-note-' + template.path.name(),
+				name: 'Create from template: ' + template.path.name(),
 				callback: () => {
-					createDataOrientedNote(this.app, template.templatePath);
+					createDataOrientedNote(this.app, template.path);
 				}
 			});
 		}
 
 		for (const template of templates) {
-			console.log('Template insert from : ' + template.templatePath);
+			console.log('Template insert from : ' + template.path.getString());
 			this.addCommand({
-				id: 'insert-data-oriented-note-' + template.templateName,
-				name: 'Insert from template: ' + template.templateName,
+				id: 'insert-data-oriented-note-' + template.path.name(),
+				name: 'Insert from template: ' + template.path.name(),
 				callback: () => {
-					createDataOrientedNote(this.app, template.templatePath, true);
+					createDataOrientedNote(this.app, template.path, true);
 				}
 			});
 		}

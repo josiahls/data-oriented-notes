@@ -1,6 +1,6 @@
 import {App, PluginSettingTab, SearchComponent, Setting} from "obsidian";
 import DataOrientedNotes from "./main";
-import { getPath, pathExists } from "./utils";
+import { Path } from "./path";
 
 /**
  * Interface for the plugin settings
@@ -21,8 +21,6 @@ export const DEFAULT_SETTINGS: DataOrientedNotesSettings = {
 	templateSourcePath: '',
 	useTemplaterCopy: true,
 }
-
-function validPath()
 
 /**
  * Setting tab.
@@ -50,11 +48,12 @@ export class DataOrientedNotesSettingTab extends PluginSettingTab {
 			.setValue(this.plugin.settings.templateSourcePath)
 			.onChange(async (value) => {
 				console.log('Template Source Path changed to: ' + value);
-				if (!pathExists(this.app, value)) {
+				var path = new Path(value, this.app);
+				if (!path.exists()) {
 					templatePathSetting.setDesc('Path does not exist!');
 				} else {
 					templatePathSetting.setDesc(defaultDescription);
-					this.plugin.settings.templateSourcePath = value;
+					this.plugin.settings.templateSourcePath = path.getString();
 					await this.plugin.saveSettings();
 				}
 			}));

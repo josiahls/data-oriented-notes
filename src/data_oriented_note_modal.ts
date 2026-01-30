@@ -1,23 +1,21 @@
-import { App, TFolder, FuzzySuggestModal, Vault, FuzzyMatch } from "obsidian";
-import { TFile } from "obsidian";
+import { App, TFolder, FuzzySuggestModal, Vault, FuzzyMatch, Notice } from "obsidian";
+import { Path } from "./path";
 
-interface RoutineSuggesterItem {
-    dataOrientedNotePathPretty: string;
-    newDataOrientedNoteName?: string;
-    dataOrientedNotePath?: TFile;
+interface DataOrientedNoteSuggesterItem {
+    path: Path;
 }
 
-class FindOrCreateModal extends FuzzySuggestModal<RoutineSuggesterItem> {
-    private resolve: (value: RoutineSuggesterItem) => void;
-    public dataOrientedNote: RoutineSuggesterItem;
-    public searchDirectory: TFolder;
+class FindOrCreateModal extends FuzzySuggestModal<DataOrientedNoteSuggesterItem> {
+    private resolve: (value: DataOrientedNoteSuggesterItem) => void;
+    public dataOrientedNote?: DataOrientedNoteSuggesterItem;
+    public searchDirectory: Path;
     public ignoreAttr: string;
     public cancelled: boolean;
 
     constructor(
         app: App,
-        resolve: (value: RoutineSuggesterItem) => void,
-        searchDirectory: TFolder,
+        resolve: (value: DataOrientedNoteSuggesterItem) => void,
+        searchDirectory: Path,
         ignoreAttr:string
     ) {
         super(app);
@@ -25,60 +23,65 @@ class FindOrCreateModal extends FuzzySuggestModal<RoutineSuggesterItem> {
         this.cancelled = false;
         this.searchDirectory = searchDirectory;
         this.ignoreAttr = ignoreAttr;
-        this.dataOrientedNote = {
-            dataOrientedNotePathPretty: '',
-            newDataOrientedNoteName: undefined,
-            dataOrientedNotePath: undefined,
-        };
+        this.dataOrientedNote = undefined;
     }
 
-    getItems(): RoutineSuggesterItem[] {
-        const items: RoutineSuggesterItem[] = [];
-        Vault.recurseChildren(this.searchDirectory, (file) => {
+    getItems(): DataOrientedNoteSuggesterItem[] {
+        const items: DataOrientedNoteSuggesterItem[] = [];
+        Vault.recurseChildren(this.searchDirectory.getTFolder(), (file) => {
             if (file.path.includes(this.ignoreAttr)) {
                 return;
             }
-            if (file instanceof TFolder) {
+            var path = new Path(file.path, this.app);
+            if (path.name().startsWith('.')) {
                 return;
             }
-            if (file instanceof TFile) {
-                items.push({
-                    dataOrientedNotePathPretty: file.basename,
-                    newDataOrientedNoteName: file.basename,
-                    dataOrientedNotePath: file
-                });
+            if (path.name().startsWith('_')) {
+                return;
             }
+
+            var relativePath = path.relativeTo(this.searchDirectory);
+            // if (file instanceof TFolder) {
+            //     return;
+            // }
+            // if (file instanceof TFile) {
+                items.push({
+                    path: relativePath,
+                });
+            // }
         });
         return items;
     }
 
-    getSuggestions(query: string): FuzzyMatch<RoutineSuggesterItem>[] {
+    getSuggestions(query: string): FuzzyMatch<DataOrientedNoteSuggesterItem>[] {
         var suggestions =  super.getSuggestions(query)
 
-        if (suggestions.length == 0) {
-            var path = this.searchDirectory.path + '/' + query;
-            path += '/' + query + '.md';
-            suggestions.push({
-                item: {
-                    dataOrientedNotePathPretty: `create new: "${query}"`,
-                    newDataOrientedNoteName: query,
-                    dataOrientedNotePath: undefined,
-                },
-                match: {
-                    score: 100,
-                    matches: [],
-                },
-            });
-        }
+        var path = this.searchDirectory.join(query);
+        console.log('path: ', path.getString());
+        suggestions.push({
+            item: {path},
+            match: {score: 100, matches: []},
+        });
         return suggestions;
     }
 
-    getItemText(item: RoutineSuggesterItem): string {
-        return item.dataOrientedNotePathPretty;
+    getItemText(item: DataOrientedNoteSuggesterItem): string {
+        if (!item.path.exists()) {
+            return `create new: "${item.path.getString()}"`;
+        }
+        if (item.path.isFolder()) {
+            return `${item.path.getString()}/`;
+        }
+        return item.path.getString();
     }
 
-    onChooseItem(item: RoutineSuggesterItem, evt: MouseEvent | KeyboardEvent) {
+    onChooseItem(item: DataOrientedNoteSuggesterItem, evt: MouseEvent | KeyboardEvent) {
         console.log('onChooseItem: item: ', item);
+        if (!item.path.exists()) {
+            item.path = item.path.join(item.path.name() + '.md');
+            console.log('Creating new note: ' + item.path.getString());
+            new Notice('Creating new note: ' + item.path.getString());
+        }
 
         this.dataOrientedNote = item;
         this.resolve(item);
@@ -86,9 +89,9 @@ class FindOrCreateModal extends FuzzySuggestModal<RoutineSuggesterItem> {
 
     static async openAndGetValue(
         app: App,
-        searchDirectory: TFolder,
+        searchDirectory: Path,
         ignoreAttr:string
-    ): Promise<RoutineSuggesterItem> {
+    ): Promise<DataOrientedNoteSuggesterItem> {
         return new Promise((resolve) => {
             new FindOrCreateModal(
                 app,

@@ -1,16 +1,15 @@
 import { App, Notice, TFile, TFolder, Vault, FuzzySuggestModal } from "obsidian";
-import { getPath, getFolderPath } from "./utils";
 import { DataOrientedNote } from "./data_oriented_note";
+import { Path } from "./path";
 
 
 export interface TemplateIteratorItem {
-    templatePath: string;
-    templateName: string;
+    path: Path;
 }
 
 class TemplateSuggestModal extends FuzzySuggestModal<TemplateIteratorItem> {
     private resolve: (value: TemplateIteratorItem) => void;
-    public templateItem: TemplateIteratorItem;
+    public templateItem?: TemplateIteratorItem;
     public templates: TemplateIteratorItem[];
     public cancelled: boolean;
 
@@ -23,10 +22,7 @@ class TemplateSuggestModal extends FuzzySuggestModal<TemplateIteratorItem> {
         this.resolve = resolve;
         this.cancelled = false;
         this.templates = templates;
-        this.templateItem = {
-            templatePath: '',
-            templateName: '',
-        };
+        this.templateItem = undefined;
     }
 
     getItems(): TemplateIteratorItem[] {
@@ -34,7 +30,7 @@ class TemplateSuggestModal extends FuzzySuggestModal<TemplateIteratorItem> {
     }
 
     getItemText(item: TemplateIteratorItem): string {
-        return item.templateName;
+        return item.path.name();
     }
 
     onChooseItem(item: TemplateIteratorItem, evt: MouseEvent | KeyboardEvent) {
@@ -72,28 +68,22 @@ async function isDataOrientedNoteTemplate(app: App, templatePath: TFile): Promis
     return isDataOrientedNoteTemplate;
 }
 
-async function iterateTemplates(app: App, templatesPath: string): Promise<TemplateIteratorItem[]> {
-    if (templatesPath.endsWith('/')) {
-        templatesPath = templatesPath.slice(0, -1);
-    }
-
-    const templatesDir = getFolderPath(app, templatesPath);
-    if (templatesDir === null) {
-        throw new Error('Template directory is not a folder: ' + templatesPath);
+async function iterateTemplates(app: App, templatesPath: Path): Promise<TemplateIteratorItem[]> {
+    if (!templatesPath.isFolder()) {
+        throw new Error('Template directory is not a folder: ' + templatesPath.getString());
     }
     const items: TemplateIteratorItem[] = [];
-    Vault.recurseChildren(templatesDir, (child) => {
+    Vault.recurseChildren(templatesPath.getTFolder(), (child) => {
         if (child instanceof TFile) {
             items.push({
-                templatePath: child.path,
-                templateName: child.name,
+                path: new Path(child, app),
             });
         }
     });
     // Filter with async checks - need to await all checks first
     const checks = await Promise.all(
         items.map(async item => {
-            const file = getPath(app, item.templatePath);
+            const file = item.path.getTFile();
             if (file instanceof TFile) {
                 const isValid = await isDataOrientedNoteTemplate(app, file);
                 return {
@@ -111,14 +101,14 @@ async function iterateTemplates(app: App, templatesPath: string): Promise<Templa
     return filtered;
 }   
 
-async function iterateDataOrientedNoteTemplates(app: App, templateSourcePath: string) { 
+async function iterateDataOrientedNoteTemplates(app: App, templateSourcePath: Path) { 
     const templates = await iterateTemplates(app, templateSourcePath);
     if (templates == null) {
         throw new Error('Templates is null');
     }
     for (const template of templates) {
-        console.log('Template: ' + template.templatePath);
-        new Notice('Template: ' + template.templatePath);
+        console.log('Template: ' + template.path.getString());
+        new Notice('Template: ' + template.path.getString());
     }
 }
 

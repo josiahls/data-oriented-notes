@@ -1,9 +1,9 @@
-import { App, StringValue, TFile, Notice, TFolder, moment, normalizePath } from "obsidian";
-import { getPath, getOrCreateFolder, pathExists } from "./utils";
+import { App, TFile, Notice, moment } from "obsidian";
+import { Path } from "./path";
 
 
 export interface copier {
-    copyTo(app: App, sourcePath: string, targetPath: string): Promise<void>;
+    copyTo(app: App, sourcePath: Path, targetPath: Path): Promise<void>;
 }
 
 
@@ -15,35 +15,26 @@ class DataOrientedNote {
     static openAfterCreation = 'don/openAfterCreation';
     static rootNoteLink = 'don/rootNoteLink';
     static useSelf = 'don/useSelf';
-
-
-    public templatePath: TFile;
+    // Property values for a data oriented note
     public attrName: string;
-    public outPath?: TFolder;
-    public rootNoteTemplate: string;
+    public outPath?: Path;
+    public rootNoteTemplatePath?: Path;
     public openAfterCreation: boolean;
     public useSelf: boolean;
-    public rootNotePath: string;
-    public noteAttrValuePath: string;
+    public rootNotePath?: Path;
+    public templatePath: Path;
+    public noteAttrValuePath?: Path;
 
-    constructor(app: App, templatePath: TFile|string) {
-        if (typeof templatePath === 'string') {
-            let path = getPath(app, templatePath);
-            if (path instanceof TFile) {
-                this.templatePath = path;
-            } else {
-                throw new Error('Template path is not a file');
-            }
-        } else if (templatePath instanceof TFile) {
-            this.templatePath = templatePath;
-        } else {
-            throw new Error('Template path is not a file or string');
+    constructor(app: App, templatePath: Path) {
+        if (!templatePath.exists()) {
+            throw new Error('Template path does not exist: ' + templatePath.getString());
         }
+        this.templatePath = templatePath;
         this.attrName = '';
-        this.rootNoteTemplate = '';
+        this.rootNoteTemplatePath = undefined;
         this.outPath = undefined;
-        this.noteAttrValuePath = '';
-        this.rootNotePath = '';
+        this.noteAttrValuePath = undefined;
+        this.rootNotePath = undefined;
         this.useSelf = false;
     }
 
@@ -57,14 +48,14 @@ class DataOrientedNote {
             const value = frontMatter[property];
             if (value === null || value === undefined) {
                 const msg = `Property "${property}" is empty `
-                    + `in template ${this.templatePath}. `
+                    + `in template ${this.templatePath.toString()}. `
                     + 'Please add/fillout this property in the template.';
                 new Notice(msg);
                 throw new Error(msg);
             }
         } else {
             const msg = `Property "${property}" not found `
-                + `in template ${this.templatePath}. `
+                + `in template ${this.templatePath.toString()}. `
                 + 'Please add/fillout this property in the template.';
             new Notice(msg);
             throw new Error(msg);
@@ -80,11 +71,11 @@ class DataOrientedNote {
         const value = frontMatter[property];
         if (typeof value !== 'string') {
             throw new Error(`Property "${property}" is not a string `
-                + `in template ${this.templatePath}.`);
+                + `in template ${this.templatePath.toString()}.`);
         }
         if (!acceptBlank && value.trim() === '') {
             const msg = `Property "${property}" is empty `
-                + `in template ${this.templatePath}. `
+                + `in template ${this.templatePath.toString()}. `
                 + 'Please add/fillout this property in the template.';
             new Notice(msg);
             throw new Error(msg);
@@ -100,15 +91,16 @@ class DataOrientedNote {
         const value = frontMatter[property];
         if (typeof value !== 'boolean') {
             throw new Error(`Property "${property}" is not a boolean `
-                + `in template ${this.templatePath}.`);
+                + `in template ${this.templatePath.toString()}.`);
         }
         return value;
     }
 
     async load(app: App) {
-        let outPath: string = '';
+        var outPath: string = '';
+        var rootNoteTemplatePath: string = '';
         await app.fileManager.processFrontMatter(
-            this.templatePath,
+            this.templatePath.getTFile(),
             (frontMatter) => {
                 this.attrName = this.getStringProperties(frontMatter, DataOrientedNote.attrName);
                 outPath = this.getStringProperties(
@@ -116,10 +108,9 @@ class DataOrientedNote {
                     DataOrientedNote.outPath,
                     true
                 );
-                this.rootNoteTemplate = this.getStringProperties(
+                rootNoteTemplatePath = this.getStringProperties(
                     frontMatter, 
-                    DataOrientedNote.rootNoteTemplate,
-                    true
+                    DataOrientedNote.rootNoteTemplate
                 );
                 this.openAfterCreation = this.getBooleanProperties(
                     frontMatter,
@@ -131,17 +122,8 @@ class DataOrientedNote {
                 );
             }
         );
-        if (outPath.trim() == '.') {
-            this.outPath = app.vault.getRoot();
-        } else {
-            this.outPath = await getOrCreateFolder(app, outPath);
-        }
-        if (this.rootNoteTemplate.trim() !== '') {
-            const rootNoteTemplatePath = getPath(app, this.rootNoteTemplate);
-            if (rootNoteTemplatePath == null) {
-                throw new Error('Root note template path is not a file');
-            }
-        }
+        this.outPath = new Path(outPath, app);
+        this.rootNoteTemplatePath = new Path(rootNoteTemplatePath, app);
     }
 
     async isInDataOrientedNote(app: App, noteFile: TFile | null): Promise<boolean> {
@@ -168,14 +150,14 @@ class DataOrientedNote {
     async isDefaultDataOrientedNote(app: App): Promise<boolean> {
         var isDefaultDataOrientedNote = false;
         await app.fileManager.processFrontMatter(
-            this.templatePath,
+            this.templatePath.getTFile(),
             (frontMatter) => {
                 if (
                     DataOrientedNote.rootNoteLink in frontMatter
                     && DataOrientedNote.useSelf in frontMatter
                     && frontMatter[DataOrientedNote.useSelf] === true
                 ) {
-                    console.log('isDefaultDataOrientedNote: ' + this.templatePath.path);
+                    console.log('isDefaultDataOrientedNote: ' + this.templatePath.getString());
                     isDefaultDataOrientedNote = true;
                 }
             }
@@ -184,7 +166,7 @@ class DataOrientedNote {
     }
 
 
-    async getRootNotePath(app: App, noteFile: TFile): Promise<TFile> {
+    async getRootNotePath(app: App, noteFile: TFile): Promise<Path> {
         var rootNoteLink = '';
         await app.fileManager.processFrontMatter(
             noteFile,
@@ -196,7 +178,7 @@ class DataOrientedNote {
         );
         if (rootNoteLink.trim() === '') {
             await app.fileManager.processFrontMatter(
-                this.templatePath,
+                this.templatePath.getTFile(),
                 (frontMatter) => {
                     if (DataOrientedNote.rootNoteLink in frontMatter) {
                         rootNoteLink = frontMatter[DataOrientedNote.rootNoteLink];
@@ -218,97 +200,83 @@ class DataOrientedNote {
             }
             rootNoteLink = _rootNoteLink;
         }
-        var rootNotePath = getPath(app, rootNoteLink);
-        if (rootNotePath == null) {
-            throw new Error('Root note path is not a file: ' + rootNoteLink);
+        var rootNotePath = new Path(rootNoteLink, app);
+        if (!rootNotePath.exists()) {
+            throw new Error('Root note path does not exist: ' + rootNotePath.getString());
         }
-        if (rootNotePath instanceof TFile) {
-            return rootNotePath;
-        }
-        throw new Error('Root note path is not a file');
+        return rootNotePath;
     }
 
-    async create(app: App, noteName: string, targetPath: TFile | null, copier: copier) {
-        console.log('creating note: ' + noteName);
+    async create(app: App, path: Path, copier: copier) {
+        console.log('creating note: ' + path.name());
         if (!this.outPath) {
             throw new Error('Output path is not set. Please load the note first.');
         }
-        var notePath: TFolder;
-        if (targetPath !== null && targetPath.parent !== null) {
-            console.log('targetPath: ' + targetPath.path);
-            notePath = targetPath.parent;
-        } else {
-            notePath = await getOrCreateFolder(
-                app, 
-                this.outPath.path + '/' + noteName
-            );
+        if (!path.isFileLike()) {
+            throw new Error('Path is not a file or folder: ' + path.getString());
+        }
+        path = path.getParent();
+        if (!path.exists()) {
+            console.log('creating folder: ' + path.getString());
+            await path.createFolder();
         }
 
-        const noteAttrPath = await getOrCreateFolder(
-            app, 
-            notePath.path + '/' + this.attrName
-        );
-        this.noteAttrValuePath = noteAttrPath.path 
-            + '/' 
-            + this.getUniqueNoteName(app, noteName) 
-            + '.md';
-        await copier.copyTo(app, this.templatePath.path, this.noteAttrValuePath);
+        var noteName = path.name();
+        var attrPath = path.join(this.attrName)
+        await attrPath.createFolder();
 
-        if (this.rootNoteTemplate.trim() !== '') {
-            const rootNoteTemplatePath = getPath(app, this.rootNoteTemplate);
-            if (rootNoteTemplatePath == null) {
+        var noteAttrValuePath = attrPath.join(
+            this.getUniqueNoteName(app, noteName) + '.md'
+        );
+
+        console.log('noteAttrValuePath: ' + noteAttrValuePath.getString());
+
+        await copier.copyTo(
+            app, 
+            this.templatePath, 
+            noteAttrValuePath
+        );
+        this.noteAttrValuePath = new Path(noteAttrValuePath, app);
+
+        if (this.rootNoteTemplatePath) {
+            if (!this.rootNoteTemplatePath.exists()) {
                 throw new Error('Root note template path is not a file');
             }
-            var rootNodePath = notePath.path + '/' + noteName + '.md';
-            if (!pathExists(app, rootNodePath)) {
+            this.rootNotePath = path.join(noteName + '.md');
+            console.log('rootNotePath: ' + this.rootNotePath.getString());
+            if (!this.rootNotePath.exists()) {
                 await copier.copyTo(
                     app, 
-                    rootNoteTemplatePath.path, 
-                    rootNodePath
+                    this.rootNoteTemplatePath, 
+                    this.rootNotePath
                 );
             }
-            this.rootNotePath = rootNodePath;
         }
 
         return this.noteAttrValuePath;
     }
 
     async postProcessCleanUp(app: App) {
-        if (this.noteAttrValuePath.trim() === '') {
+        if (!this.noteAttrValuePath?.isSet()) {
             throw new Error('Note attribute value path is not set. Please create the note first.');
         }
 
-        const noteAttrValuePath = getPath(app, this.noteAttrValuePath);
-        if (noteAttrValuePath == null) {
-            throw new Error('Note attribute value path is not a file');
-        }
-
-        if (noteAttrValuePath instanceof TFile) {
-            console.log('postProcessCleanUp: noteAttrValuePath: ' + noteAttrValuePath);
-            await app.fileManager.processFrontMatter(
-                noteAttrValuePath,
-                (frontMatter) => {
-                    delete frontMatter[DataOrientedNote.attrName];
-                    delete frontMatter[DataOrientedNote.outPath];
-                    delete frontMatter[DataOrientedNote.rootNoteTemplate];
-                    delete frontMatter[DataOrientedNote.openAfterCreation];
-                    var p = getPath(app, this.rootNotePath);
-                    var rootNoteName = '';
-                    if (p == null) {
-                        throw new Error('Root note name is not a file');
-                    }
-                    if (p instanceof TFile) {
-                        rootNoteName = p.basename;
-                    }
-                    var rootNoteLink = `[[${this.rootNotePath}]]`;
-                    if (rootNoteName.trim() !== '') {
-                        var rootNoteLink = `[[${this.rootNotePath}|${rootNoteName}]]`;
-                    }
-                    frontMatter[DataOrientedNote.rootNoteLink] = rootNoteLink;
+        console.log('postProcessCleanUp: noteAttrValuePath: ' + this.noteAttrValuePath.getString());
+        await app.fileManager.processFrontMatter(
+            this.noteAttrValuePath.getTFile(),
+            (frontMatter) => {
+                delete frontMatter[DataOrientedNote.attrName];
+                delete frontMatter[DataOrientedNote.outPath];
+                delete frontMatter[DataOrientedNote.rootNoteTemplate];
+                delete frontMatter[DataOrientedNote.openAfterCreation];
+                var rootNoteName = this.rootNotePath?.name() ?? '';
+                var rootNoteLink = `[[${this.rootNotePath?.getString()}]]`;
+                if (rootNoteName.trim() !== '') {
+                    rootNoteLink = `[[${this.rootNotePath?.getString()}|${rootNoteName}]]`;
                 }
-            );
-        }
-
+                frontMatter[DataOrientedNote.rootNoteLink] = rootNoteLink;
+            }
+        );
     }
 }
 
