@@ -25,12 +25,9 @@ async function createDataOrientedNote(
     insert: boolean = false
 ) {
     var copier: copier = basicCopier;
-    var file = null;
-    if (insert) {
-        file = await app.workspace.getActiveFile();
-        if (!file) {
-            throw new Error("No active file to insert into");
-        }
+    var currentFile: Path | TFile | null = await app.workspace.getActiveFile();
+    if (currentFile !== null) {
+        currentFile = new Path(currentFile, app);
     }
 
     if (!templatePath.exists()) {
@@ -44,35 +41,24 @@ async function createDataOrientedNote(
         throw new Error('Output path is not set. Please load the note first.');
     }
 
-    var isInDataOrientedNote = await note.isInDataOrientedNote(
-        app, 
-        await app.workspace.getActiveFile()
-    );
-
-    var isDefaultDataOrientedNote = await note.isDefaultDataOrientedNote(app);
-
     console.log(note);
     var dataOrientedNotePath: Path;
 
-    if (!isInDataOrientedNote && !isDefaultDataOrientedNote) {
-        const dataOrientedNoteItem = await FindOrCreateModal.openAndGetValue(
-            app, 
-            note.outPath,
-            note.attrName
-        );
-        dataOrientedNotePath = dataOrientedNoteItem.path;
-        console.log('Data Oriented Note Path: ',
-            dataOrientedNotePath.getString(),
-        );
-    } else {
-        const activeFile = await app.workspace.getActiveFile();
-        if (activeFile == null) {
-            throw new Error('No active file to get root note path from');
-        }
-        dataOrientedNotePath = await note.getRootNotePath(
-            app, activeFile
-        );
+    if (note.rootNotePath !== undefined) {
+        currentFile = note.rootNotePath;
     }
+
+    const dataOrientedNoteItem = await FindOrCreateModal.openAndGetValue(
+        app, 
+        note.outPath,
+        note.attrName,
+        currentFile
+    );
+    dataOrientedNotePath = dataOrientedNoteItem.path;
+    console.log('Data Oriented Note Path: ',
+        dataOrientedNotePath.getString(),
+    );
+
 
     const newNote = await note.create(
         app, 
@@ -84,12 +70,16 @@ async function createDataOrientedNote(
 
     await note.postProcessCleanUp(app);
 
-    if (insert && file != null) {
+    var currentFile: Path | TFile | null = await app.workspace.getActiveFile();
+    if (currentFile !== null) {
+        currentFile = new Path(currentFile, app);
+    }
+    if (insert && currentFile !== null) {
         await app.vault.append(
-            file,
+            currentFile.getTFile(),
             `![[${newNote.getString()}|${newNote.name()}]]`
         );
-        new Notice('Inserted ' + newNote.getString() + ' into ' + file.path);
+        new Notice('Inserted ' + newNote.getString() + ' into ' + currentFile.getString());
     }
 
     if (note.openAfterCreation) {

@@ -124,6 +124,11 @@ class DataOrientedNote {
         );
         this.outPath = new Path(outPath, app);
         this.rootNoteTemplatePath = new Path(rootNoteTemplatePath, app);
+        var rootNotePath = await this.getRootNotePath(app, this.templatePath.getTFile());
+        console.log('rootNotePath: ' + rootNotePath.getString());
+        if (rootNotePath.exists()) {
+            this.rootNotePath = rootNotePath;
+        }
     }
 
     async isInDataOrientedNote(app: App, noteFile: TFile | null): Promise<boolean> {

@@ -11,20 +11,32 @@ class FindOrCreateModal extends FuzzySuggestModal<DataOrientedNoteSuggesterItem>
     public dataOrientedNote?: DataOrientedNoteSuggesterItem;
     public searchDirectory: Path;
     public ignoreAttr: string;
+    public activeFile: Path | null;
     public cancelled: boolean;
 
     constructor(
         app: App,
         resolve: (value: DataOrientedNoteSuggesterItem) => void,
         searchDirectory: Path,
-        ignoreAttr:string
+        ignoreAttr:string,
+        activeFile: Path | null
     ) {
         super(app);
         this.resolve = resolve;
         this.cancelled = false;
         this.searchDirectory = searchDirectory;
         this.ignoreAttr = ignoreAttr;
+        this.activeFile = activeFile;
         this.dataOrientedNote = undefined;
+        if (activeFile !== null) {
+            if (activeFile.getParent().name() === this.ignoreAttr) {
+                this.activeFile = activeFile.getParent().getParent();
+            }
+            var rootFile = activeFile.join(activeFile.name() + '.md');
+            if (rootFile.exists()) {
+                this.activeFile = rootFile;
+            }
+        }
     }
 
     getItems(): DataOrientedNoteSuggesterItem[] {
@@ -40,11 +52,12 @@ class FindOrCreateModal extends FuzzySuggestModal<DataOrientedNoteSuggesterItem>
             if (path.name().startsWith('_')) {
                 return;
             }
-
-            var relativePath = path.relativeTo(this.searchDirectory);
+            if (path.getString() == '') {
+                return;
+            }
 
             items.push({
-                path: relativePath,
+                path: path,
             });
         });
         return items;
@@ -54,14 +67,25 @@ class FindOrCreateModal extends FuzzySuggestModal<DataOrientedNoteSuggesterItem>
         var suggestions =  super.getSuggestions(query)
 
         var path = this.searchDirectory.join(query);
-        var createSuggestion: FuzzyMatch<DataOrientedNoteSuggesterItem>[] = [{
-            item: {path},
-            match: {score: 100, matches: []},
-        }];
-        return createSuggestion.concat(...suggestions);
+        var constantSuggestions: FuzzyMatch<DataOrientedNoteSuggesterItem>[] = [];
+        if (this.activeFile !== null) {
+            constantSuggestions.push({
+                item: {path: this.activeFile},
+                match: {score: 100, matches: []},
+            });
+        }
+        constantSuggestions.push({
+                item: {path},
+                match: {score: 100, matches: []},
+            }
+        );
+        return constantSuggestions.concat(...suggestions);
     }
 
     getItemText(item: DataOrientedNoteSuggesterItem): string {
+        if (this.activeFile !== null && item.path.getString() === this.activeFile.getString()) {
+            return `self: "${item.path.getString()}"`;
+        }
         if (!item.path.exists()) {
             return `create new: "${item.path.getString()}"`;
         }
@@ -86,14 +110,16 @@ class FindOrCreateModal extends FuzzySuggestModal<DataOrientedNoteSuggesterItem>
     static async openAndGetValue(
         app: App,
         searchDirectory: Path,
-        ignoreAttr:string
+        ignoreAttr:string,
+        activeFile: Path | null
     ): Promise<DataOrientedNoteSuggesterItem> {
         return new Promise((resolve) => {
             new FindOrCreateModal(
                 app,
                 resolve,
                 searchDirectory,
-                ignoreAttr
+                ignoreAttr,
+                activeFile
             ).open();
         });
     }
