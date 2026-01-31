@@ -1,4 +1,5 @@
 import { App, TFolder, FuzzySuggestModal, Vault, FuzzyMatch, Notice } from "obsidian";
+import { TFile } from "obsidian";
 import { Path } from "./path";
 
 interface DataOrientedNoteSuggesterItem {
@@ -41,14 +42,10 @@ class FindOrCreateModal extends FuzzySuggestModal<DataOrientedNoteSuggesterItem>
             }
 
             var relativePath = path.relativeTo(this.searchDirectory);
-            // if (file instanceof TFolder) {
-            //     return;
-            // }
-            // if (file instanceof TFile) {
-                items.push({
-                    path: relativePath,
-                });
-            // }
+
+            items.push({
+                path: relativePath,
+            });
         });
         return items;
     }
@@ -57,12 +54,11 @@ class FindOrCreateModal extends FuzzySuggestModal<DataOrientedNoteSuggesterItem>
         var suggestions =  super.getSuggestions(query)
 
         var path = this.searchDirectory.join(query);
-        console.log('path: ', path.getString());
-        suggestions.push({
+        var createSuggestion: FuzzyMatch<DataOrientedNoteSuggesterItem>[] = [{
             item: {path},
             match: {score: 100, matches: []},
-        });
-        return suggestions;
+        }];
+        return createSuggestion.concat(...suggestions);
     }
 
     getItemText(item: DataOrientedNoteSuggesterItem): string {
