@@ -124,10 +124,18 @@ class DataOrientedNote {
         );
         this.outPath = new Path(outPath, app);
         this.rootNoteTemplatePath = new Path(rootNoteTemplatePath, app);
-        var rootNotePath = await this.getRootNotePath(app, this.templatePath.getTFile());
-        console.log('rootNotePath: ' + rootNotePath.getString());
-        if (rootNotePath.exists()) {
-            this.rootNotePath = rootNotePath;
+        try {
+            var rootNotePath = await this.getRootNotePath(app, this.templatePath.getTFile());
+            console.log('rootNotePath: ' + rootNotePath.getString());
+            if (rootNotePath.exists()) {
+                this.rootNotePath = rootNotePath;
+            }
+        } catch (error) {
+            if (error instanceof Error && error.message.includes('Root note link is empty')) {
+                return;
+            } else {
+                throw error;
+            }
         }
     }
 
