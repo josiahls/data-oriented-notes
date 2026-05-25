@@ -75,9 +75,10 @@ async function createDataOrientedNote(
         currentFile = new Path(currentFile, app);
     }
     if (insert && currentFile !== null) {
+        var noteName = note.rootNotePath?.name() ?? newNote.name();
         await app.vault.append(
             currentFile.getTFile(),
-            `[[${newNote.getString()}|${newNote.name()}]]`
+            `[[${newNote.getString()}|${noteName}]]`
         );
         new Notice('Inserted ' + newNote.getString() + ' into ' + currentFile.getString());
     }
