@@ -227,6 +227,16 @@ class Path {
             return this.path.split('/').pop() ?? '';
         }
     }
+
+    stem(): string {
+        if (this.tfile) {
+            return this.tfile.basename.split('.').shift() ?? '';
+        } else if (this.tfolder) {
+            return this.tfolder.name.split('.').shift() ?? '';
+        } else {
+            return this.path.split('/').pop()?.split('.').shift() ?? '';
+        }
+    }
 }
 
 

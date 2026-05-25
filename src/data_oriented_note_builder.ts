@@ -1,4 +1,4 @@
-import { App, Notice, TFile, TFolder } from "obsidian";
+import { App, MarkdownView, Notice, TFile, TFolder } from "obsidian";
 import { DataOrientedNote, copier } from "./data_oriented_note";
 import { getPath } from "./utils";
 import { FindOrCreateModal } from "./data_oriented_note_modal";
@@ -75,11 +75,20 @@ async function createDataOrientedNote(
         currentFile = new Path(currentFile, app);
     }
     if (insert && currentFile !== null) {
-        var noteName = note.rootNotePath?.name() ?? newNote.name();
-        await app.vault.append(
-            currentFile.getTFile(),
-            `[[${newNote.getString()}|${noteName}]]`
-        );
+        var noteName = note.rootNotePath?.stem() ?? newNote.name();
+        var view = await app.workspace.getActiveViewOfType(MarkdownView);
+        const cursor = view?.editor.getCursor();
+        if (cursor === undefined) {
+            throw new Error('Cursor is undefined');
+        }
+        // await app.vault.append(
+        //     currentFile.getTFile(),
+        //     `[[${newNote.getString()}|${noteName}]]`
+        // );
+        view?.editor.replaceRange(
+            `[[${newNote.getString()}|${noteName}]]`,
+            cursor
+          );
         new Notice('Inserted ' + newNote.getString() + ' into ' + currentFile.getString());
     }
 
